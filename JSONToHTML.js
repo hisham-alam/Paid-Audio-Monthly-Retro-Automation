@@ -357,7 +357,17 @@ function generateBauTable(vendors) {
   vendors.forEach(vendor => {
     html += '<tr>';
     html += `<td style="font-size: ${CONFIG.fontSize}; white-space: nowrap;">${vendor.name}</td>`;
-    html += `<td style="font-size: ${CONFIG.fontSize};">${vendor.placements.replace(/,/g, '<br>')}</td>`;
+    // Check if placements is a string before using replace
+    let placementsContent = '';
+    if (typeof vendor.placements === 'string') {
+      placementsContent = vendor.placements.replace(/,/g, '<br>');
+    } else if (Array.isArray(vendor.placements)) {
+      placementsContent = vendor.placements.join('<br>');
+    } else {
+      // Handle case where placements is neither string nor array
+      placementsContent = String(vendor.placements || 'BAU placements');
+    }
+    html += `<td style="font-size: ${CONFIG.fontSize};">${placementsContent}</td>`;
     html += `<td style="text-align: center; font-size: ${CONFIG.fontSize}; white-space: nowrap;">${formatMetricValue(vendor.impressions)}</td>`;
     html += `<td style="text-align: center; font-size: ${CONFIG.fontSize}; white-space: nowrap;">${formatCurrency(vendor.spend)}</td>`;
     html += `<td style="text-align: center; font-size: ${CONFIG.fontSize}; white-space: nowrap;">${formatMetricValue(vendor.ncs)}</td>`;
