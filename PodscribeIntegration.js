@@ -297,15 +297,14 @@ function processCsvFilesWithPodscribe() {
       console.error(`Document created but couldn't move: ${moveError.message}`);
     }
     
-    console.log(`Preparing to delete ${processedFiles.length} processed files`);
+    console.log(`Preparing to process ${processedFiles.length} processed files`);
     
-    // Delete processed CSV files
+    // Mark processed CSV files as processed
     for (const file of processedFiles) {
-      try {
-        file.setTrashed(true);
-        console.log(`Deleted CSV: ${file.getName()}`);
-      } catch (deleteError) {
-        console.log(`Couldn't delete CSV ${file.getName()}: ${deleteError.message}`);
+      if (markFileAsProcessed(file, ' (PROCESSED_PODSCRIBE)')) {
+        console.log(`Processed CSV: ${file.getName()}`);
+      } else {
+        console.log(`⚠️ Couldn't process CSV ${file.getName()} - may be reprocessed`);
       }
     }
     
@@ -315,11 +314,10 @@ function processCsvFilesWithPodscribe() {
       console.log(`Files processed: ${processedFiles.length} of ${allFilesCount} total`);
       
       if (processedFiles.length === allFilesCount) {
-        try {
-          latestFolder.setTrashed(true);
-          console.log(`Deleted folder: ${latestFolder.getName()}`);
-        } catch (folderError) {
-          console.error(`Couldn't delete folder: ${folderError.message}`);
+        if (markFileAsProcessed(latestFolder, ' (PROCESSED_FOLDER)')) {
+          console.log(`Processed folder: ${latestFolder.getName()}`);
+        } else {
+          console.log(`⚠️ Couldn't process folder: ${latestFolder.getName()}`);
         }
       } else {
         console.log(`Kept folder due to unprocessed files. Processed ${processedFiles.length} of ${allFilesCount} files.`);

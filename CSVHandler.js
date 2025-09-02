@@ -128,23 +128,21 @@ function processCsvFiles() {
       console.log(`Document created but couldn't move: ${moveError.message}`);
     }
     
-    // Only delete successfully processed CSV files
+    // Mark successfully processed CSV files as processed
     for (const file of processedFiles) {
-      try {
-        file.setTrashed(true);
-        console.log(`Deleted CSV: ${file.getName()}`);
-      } catch (deleteError) {
-        console.log(`Couldn't delete CSV ${file.getName()}: ${deleteError.message}`);
+      if (markFileAsProcessed(file, ' (PROCESSED_CSV)')) {
+        console.log(`Processed CSV: ${file.getName()}`);
+      } else {
+        console.log(`⚠️ Couldn't process CSV ${file.getName()} - may be reprocessed`);
       }
     }
     
-    // Only delete folder if all files were processed successfully
+    // Only process folder if all files were processed successfully
     if (processedFiles.length === csvArray.length) {
-      try {
-        latestFolder.setTrashed(true);
-        console.log(`Deleted folder: ${latestFolder.getName()}`);
-      } catch (folderError) {
-        console.log(`Couldn't delete folder: ${folderError.message}`);
+      if (markFileAsProcessed(latestFolder, ' (PROCESSED_FOLDER)')) {
+        console.log(`Processed folder: ${latestFolder.getName()}`);
+      } else {
+        console.log(`⚠️ Couldn't process folder: ${latestFolder.getName()}`);
       }
     } else {
       console.log(`Kept folder due to unprocessed files. Processed ${processedFiles.length} of ${csvArray.length} files.`);

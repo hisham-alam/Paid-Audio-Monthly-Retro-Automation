@@ -4,6 +4,43 @@
 // Note: CONFLUENCE_PARENT_PAGE_ID is defined in confluenceapi.js and shared across all files
 
 /**
+ * Utility function to mark a file as processed - attempts deletion first,
+ * falls back to renaming if deletion fails
+ * @param {GoogleAppsScript.Drive.File} file - The file to mark as processed
+ * @param {string} suffix - Optional suffix to append when renaming (defaults to " (PROCESSED)")
+ * @return {boolean} - True if file was marked as processed (deleted or renamed), false otherwise
+ */
+function markFileAsProcessed(file, suffix = ' (PROCESSED)') {
+  try {
+    // First try to delete the file
+    file.setTrashed(true);
+    console.log('Successfully deleted processed file');
+    return true;
+  } catch (deleteError) {
+    console.log('Cannot delete file (likely not owner), attempting to rename...');
+
+    try {
+      const currentName = file.getName();
+
+      // Check if already marked to prevent duplicate suffixes
+      if (!currentName.includes('(PROCESSED)') && 
+          !currentName.includes('(ERROR')) {
+        file.setName(currentName + suffix);
+        console.log(`Renamed file to: ${currentName}${suffix}`);
+        return true;
+      } else {
+        console.log('File already marked as processed');
+        return true;
+      }
+    } catch (renameError) {
+      console.error('Could not rename file either:', renameError.toString());
+      console.log('File will remain unchanged - may be reprocessed on next run');
+      return false;
+    }
+  }
+}
+
+/**
  * Custom function to find Audio Monthly Retro JSON files
  */
 function findAudioRetroFiles() {
@@ -170,21 +207,27 @@ function processRetroFile(file) {
   const pageUrl = createRetroPaginConfluence(htmlContent, file.getName(), forceCreate);
   
   if (pageUrl === null) {
-    // Page already exists - still delete the JSON file to prevent reprocessing
+    // Page already exists - still mark the JSON file as processed to prevent reprocessing
     console.log('✓ Page already exists - no action needed');
     
-    // Delete the JSON Google Doc
-    DriveApp.getFileById(file.getId()).setTrashed(true);
-    console.log('✓ JSON file deleted (moved to trash)');
+    // Mark the JSON file as processed
+    if (markFileAsProcessed(DriveApp.getFileById(file.getId()), ' (ALREADY_EXISTS)')) {
+      console.log('✓ JSON file processed (deleted or renamed)');
+    } else {
+      console.log('⚠️ Could not process JSON file - may be reprocessed');
+    }
     
     return 'exists';
   }
   
   console.log(`✓ Confluence page created: ${pageUrl}`);
   
-  // Delete the JSON Google Doc after successful page creation
-  DriveApp.getFileById(file.getId()).setTrashed(true);
-  console.log(`✓ JSON file deleted (moved to trash)`);
+  // Mark the JSON file as processed after successful page creation
+  if (markFileAsProcessed(DriveApp.getFileById(file.getId()))) {
+    console.log(`✓ JSON file processed (deleted or renamed)`);
+  } else {
+    console.log(`⚠️ Could not process JSON file - may be reprocessed`);
+  }
   
   return 'created';
 }
@@ -567,6 +610,9 @@ function testOverrideFunction() {
   }
   
   // Clean up
-  DriveApp.getFileById(testDoc.getId()).setTrashed(true);
-  console.log('Test doc moved to trash');
+  if (markFileAsProcessed(DriveApp.getFileById(testDoc.getId()), ' (TEST)')) {
+    console.log('Test doc processed (deleted or renamed)');
+  } else {
+    console.log('⚠️ Could not process test doc');
+  }
 }
